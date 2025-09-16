@@ -1,0 +1,133 @@
+import numpy as np
+import random
+
+# ----------------------------
+# Problem Setup
+# ----------------------------
+class VRP:
+    def __init__(self, num_customers, num_vehicles, vehicle_capacity, demand, coords):
+        self.num_customers = num_customers
+        self.num_vehicles = num_vehicles
+        self.vehicle_capacity = vehicle_capacity
+        self.demand = demand
+        self.coords = coords
+
+        # distance matrix
+        self.dist_matrix = np.zeros((num_customers+1, num_customers+1))  # +1 for depot
+        for i in range(num_customers+1):
+            for j in range(num_customers+1):
+                if i != j:
+                    self.dist_matrix[i][j] = np.linalg.norm(np.array(coords[i]) - np.array(coords[j]))
+
+# ----------------------------
+# Ant Colony Optimization
+# ----------------------------
+class ACO_VRP:
+    def __init__(self, vrp, num_ants=10, alpha=1, beta=5, rho=0.5, Q=100, iterations=50):
+        self.vrp = vrp
+        self.num_ants = num_ants
+        self.alpha = alpha        # importance of pheromone
+        self.beta = beta          # importance of heuristic (distance)
+        self.rho = rho            # pheromone evaporation rate
+        self.Q = Q                # pheromone deposit factor
+        self.iterations = iterations
+
+        # pheromone matrix
+        n = vrp.num_customers + 1
+        self.pheromone = np.ones((n, n))
+
+    # Run the ACO algorithm
+    def run(self):
+        best_solution = None
+        best_cost = float('inf')
+
+        for it in range(self.iterations):
+            all_solutions = []
+            all_costs = []
+
+            for ant in range(self.num_ants):
+                solution, cost = self.construct_solution()
+                all_solutions.append(solution)
+                all_costs.append(cost)
+
+                if cost < best_cost:
+                    best_cost = cost
+                    best_solution = solution
+
+            self.update_pheromones(all_solutions, all_costs)
+            print(f"Iteration {it+1}, Best cost: {best_cost:.2f}")
+
+        return best_solution, best_cost
+
+    # Construct a solution for one ant
+    def construct_solution(self):
+        n = self.vrp.num_customers
+        visited = [False] * (n+1)
+        visited[0] = True  # depot
+
+        routes = []
+        total_cost = 0
+
+        for v in range(self.vrp.num_vehicles):
+            capacity_left = self.vrp.vehicle_capacity
+            route = [0]  # start from depot
+
+            while True:
+                i = route[-1]
+                probabilities = []
+                candidates = []
+
+                for j in range(1, n+1):
+                    if not visited[j] and self.vrp.demand[j] <= capacity_left:
+                        tau = self.pheromone[i][j] ** self.alpha
+                        eta = (1.0 / self.vrp.dist_matrix[i][j]) ** self.beta
+                        probabilities.append(tau * eta)
+                        candidates.append(j)
+
+                if not candidates:
+                    break
+
+                probs = np.array(probabilities) / sum(probabilities)
+                next_city = np.random.choice(candidates, p=probs)
+
+                route.append(next_city)
+                total_cost += self.vrp.dist_matrix[i][next_city]
+                capacity_left -= self.vrp.demand[next_city]
+                visited[next_city] = True
+
+            route.append(0)  # return to depot
+            total_cost += self.vrp.dist_matrix[route[-2]][0]
+            routes.append(route)
+
+        return routes, total_cost
+
+    # Update pheromone trails
+    def update_pheromones(self, all_solutions, all_costs):
+        self.pheromone *= (1 - self.rho)  # evaporation
+
+        for solution, cost in zip(all_solutions, all_costs):
+            deposit = self.Q / cost
+            for route in solution:
+                for i in range(len(route) - 1):
+                    a, b = route[i], route[i+1]
+                    self.pheromone[a][b] += deposit
+                    self.pheromone[b][a] += deposit  # symmetric
+
+# ----------------------------
+# Example Run
+# ----------------------------
+if __name__ == "__main__":
+    # Depot + 4 customers
+    coords = [(50,50), (20,60), (30,20), (60,80), (80,40)]  # depot = (50,50)
+    demand = [0, 10, 15, 18, 12]  # depot demand = 0
+
+    vrp = VRP(num_customers=4, num_vehicles=2, vehicle_capacity=30,
+              demand=demand, coords=coords)
+
+    aco = ACO_VRP(vrp, num_ants=10, iterations=20)
+    best_solution, best_cost = aco.run()
+
+    print("\nBest solution (routes):")
+    for i, route in enumerate(best_solution):
+        print(f"Vehicle {i+1}: {route}")
+    print("Best total distance:", best_cost)
