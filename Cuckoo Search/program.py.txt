@@ -1,0 +1,52 @@
+import random
+import numpy as np
+
+def evaluate(devices, schedule)
+    return sum(d['power'] for d, status in zip(devices, schedule) if status == 1)
+
+def levy_flight(current, best)
+    step = np.random.normal(0, 1, len(current))  (np.random.normal(0, 1, len(current))0.5)
+    new_solution = np.clip(np.array(current) + step, 0, 1)
+    return [1 if x  0.5 else 0 for x in new_solution]
+
+def cuckoo_search(devices, n_nests=5, n_iter=20, pa=0.25)
+    nests = [[random.randint(0, 1) for _ in devices] for _ in range(n_nests)]
+    fitness = [evaluate(devices, nest) for nest in nests]
+    best_nest = nests[fitness.index(min(fitness))]
+
+    for _ in range(n_iter)
+        for i in range(n_nests)
+            new_nest = levy_flight(nests[i], best_nest)
+            new_fitness = evaluate(devices, new_nest)
+            if new_fitness  fitness[i]
+                nests[i], fitness[i] = new_nest, new_fitness
+
+        for i in range(n_nests)
+            if random.random()  pa
+                nests[i] = [random.randint(0, 1) for _ in devices]
+                fitness[i] = evaluate(devices, nests[i])
+
+        best_nest = nests[fitness.index(min(fitness))]
+
+    return best_nest, min(fitness)
+
+# === Input devices dynamically ===
+devices = []
+n = int(input(Enter number of devices ))
+
+for i in range(n)
+    name = input(fEnter name of device {i+1} )
+    power = float(input(fEnter power consumption (kW) of {name} ))
+    devices.append({'name' name, 'power' power})
+
+# Show input devices
+print(nDevices and their power consumption (kW))
+for d in devices
+    print(f- {d['name']} {d['power']} kW)
+
+# Run the algorithm
+best_schedule, best_energy = cuckoo_search(devices)
+
+# Show output
+print(nOptimal device schedule (1=ON, 0=OFF), best_schedule)
+print(Minimum total energy consumption (kW), best_energy)
