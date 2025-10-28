@@ -1,0 +1,51 @@
+import numpy as np
+import random
+
+# Parameters
+rows = 5
+cols = 5
+time_steps = 5
+spread_prob = 0.6  # probability of fire spreading
+
+# Cell states
+EMPTY = 0
+BURNING = 1
+TREE = 2
+
+# Initialize forest
+forest = np.full((rows, cols), TREE, dtype=int)
+
+# Ignite initial fire
+forest[2, 2] = BURNING  # center tree is burning
+
+# Neighbor positions
+neighbors = [(-1, 0), (1, 0), (0, -1), (0, 1)]  # 4-neighborhood for simplicity
+
+def print_forest(grid):
+    symbols = {EMPTY: '⬛', TREE: '🌲', BURNING: '🔥'}
+    for row in grid:
+        print(" ".join(symbols[cell] for cell in row))
+    print("\n")
+
+# Print initial forest
+print("Initial Forest:")
+print_forest(forest)
+
+# Simulation loop
+for t in range(time_steps):
+    new_forest = forest.copy()
+    for i in range(rows):
+        for j in range(cols):
+            if forest[i, j] == BURNING:
+                new_forest[i, j] = EMPTY
+            elif forest[i, j] == TREE:
+                for dx, dy in neighbors:
+                    ni, nj = i + dx, j + dy
+                    if 0 <= ni < rows and 0 <= nj < cols:
+                        if forest[ni, nj] == BURNING:
+                            if random.random() < spread_prob:
+                                new_forest[i, j] = BURNING
+                                break
+    forest = new_forest
+    print(f"Time Step {t+1}:")
+    print_forest(forest)
