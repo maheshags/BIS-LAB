@@ -1,0 +1,44 @@
+import random
+
+def objective_function(x):
+    return x**2 + 3*x + 5
+
+def gene_expression_algorithm(pop_size=20, generations=50, mutation_rate=0.1):
+    population = [random.uniform(-10, 10) for _ in range(pop_size)]
+    best_solution = None
+    best_fitness = float("inf")
+
+    for gen in range(generations):
+        fitness = [objective_function(ind) for ind in population]
+        for i in range(pop_size):
+            if fitness[i] < best_fitness:
+                best_fitness = fitness[i]
+                best_solution = population[i]
+
+        selected = []
+        for _ in range(pop_size):
+            i, j = random.sample(range(pop_size), 2)
+            if fitness[i] < fitness[j]:
+                selected.append(population[i])
+            else:
+                selected.append(population[j])
+
+        offspring = []
+        for i in range(0, pop_size, 2):
+            parent1 = selected[i]
+            parent2 = selected[(i+1) % pop_size]
+            child1 = (parent1 + parent2) / 2
+            child2 = (parent1 - parent2) / 2
+            offspring.extend([child1, child2])
+
+        for i in range(len(offspring)):
+            if random.random() < mutation_rate:
+                offspring[i] += random.uniform(-1, 1)
+
+        population = offspring
+
+    return best_solution, best_fitness
+
+best_x, best_value = gene_expression_algorithm()
+print("Best solution (x):", best_x)
+print("Minimum function value:", best_value)
